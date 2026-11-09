@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ไลน์บรรจุน้ำตาล SBPL-001</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: โมเดล 3 มิติเต็มพื้นที่ซ้าย แผงรายละเอียดและชั้นข้อมูลอยู่ขวา (มือถือ: โมเดลบน แผงล่าง) */
+:root{
+  --bg:#eef2f6; --panel:#fbfcfd; --ink:#0f2236; --muted:#566a7e; --line:#cfd9e3;
+  --stage:#e3eaf1; --floor:#d3dee9; --grid:#bccbda; --wallline:#7592ae;
+  --old:#2b6ea6; --new:#c8730f; --ok:#23805a; --chip:rgba(251,252,253,.93); --sel:#fff4e0;
+  --font:'IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#09131f; --panel:#0e1d2e; --ink:#e4edf6; --muted:#8fa5ba; --line:#203750;
+  --stage:#0b1827; --floor:#112437; --grid:#1b3853; --wallline:#4a78a4;
+  --old:#5db0ea; --new:#f2a33a; --ok:#4cc790; --chip:rgba(10,22,36,.9); --sel:#2a2112; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#09131f; --panel:#0e1d2e; --ink:#e4edf6; --muted:#8fa5ba; --line:#203750;
+  --stage:#0b1827; --floor:#112437; --grid:#1b3853; --wallline:#4a78a4;
+  --old:#5db0ea; --new:#f2a33a; --ok:#4cc790; --chip:rgba(10,22,36,.9); --sel:#2a2112; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--font);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 348px;gap:14px;padding-block:12px}
+.stage{position:relative;min-height:0;min-width:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--stage)}
+#gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#gl:active{cursor:grabbing}
+#labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.chip{position:absolute;left:0;top:0;display:flex;align-items:center;gap:5px;padding:2px 7px 2px 6px;
+  border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:4px;font:500 11px/1.4 var(--font);
+  white-space:nowrap;pointer-events:auto;cursor:pointer}
+.chip b{font:500 11px var(--mono)}
+.chip span{display:none}
+#labels.names .chip span,.chip:hover span,.chip.on span{display:inline}
+#labels.off .chip{display:none}
+.chip.on{border-color:var(--new);background:var(--sel)}
+.dim{position:absolute;left:0;top:0;font:500 11px var(--mono);color:var(--muted);white-space:nowrap;pointer-events:none}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none;background:var(--old)}
+.dot.new{background:var(--new)}
+.dot.struct{background:var(--muted)}
+.hint{position:absolute;left:10px;top:10px;right:10px;font-size:12px;color:var(--muted);pointer-events:none}
+.views{position:absolute;left:8px;right:8px;bottom:10px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center;pointer-events:none}
+.views .seg{pointer-events:auto;display:flex;flex-wrap:wrap;gap:2px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--chip);justify-content:center}
+.fail{margin:24px;color:var(--muted)}
+
+.panel{min-height:0;min-width:0;overflow:auto;display:flex;flex-direction:column;gap:18px;padding-right:2px}
+.brand .eyebrow{margin:0;font:500 11px var(--mono);color:var(--muted)}
+.brand h1{margin:2px 0 0;font-size:20px;line-height:1.3;font-weight:600;text-wrap:balance}
+.brand .sub{margin:2px 0 0;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+h2{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--muted)}
+.card{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:12px 14px;min-height:92px}
+.card .empty{margin:0;color:var(--muted)}
+.card .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card .code{font:500 12px var(--mono);padding:1px 7px;border:1px solid var(--line);border-radius:4px}
+.pill{font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor}
+.pill.old{color:var(--old)}.pill.new{color:var(--new)}.pill.struct{color:var(--muted)}
+.card h3{margin:6px 0 4px;font-size:16px;font-weight:600;line-height:1.35}
+.card p{margin:0 0 6px;font-size:13px}
+.card .note{padding:8px 10px;border-radius:6px;background:var(--sel);font-size:12.5px;margin-top:8px}
+.card dl{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:12px}
+.card dt{color:var(--muted)}
+.card dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{display:flex;align-items:center;gap:8px;font-size:13px}
+.opt input{width:16px;height:16px;margin:0;accent-color:var(--new)}
+.opt .n{margin-left:auto;font:500 11px var(--mono);color:var(--muted)}
+.btn{font:500 12.5px var(--font);color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+.btn:hover{background:var(--sel)}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.seg .btn{border-color:transparent}
+.btn:focus-visible,.row:focus-visible,.chip:focus-visible,.opt input:focus-visible{outline:2px solid var(--new);outline-offset:1px}
+.line{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sim{font-size:12px;color:var(--muted);margin-top:6px;font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.row{display:flex;align-items:center;gap:8px;padding:6px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:13px var(--font);text-align:left;cursor:pointer;min-width:0}
+.row:last-child{border-bottom:0}
+.row b{font:500 11.5px var(--mono);width:34px;flex:none}
+.row span{min-width:0;overflow-wrap:anywhere}
+.row:hover{background:var(--sel)}
+.row.on{background:var(--sel);box-shadow:inset 0 0 0 1px var(--new)}
+.sub2{margin:10px 0 6px;font-size:12px;color:var(--muted)}
+
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{display:flex;flex-direction:column;height:auto}
+  .stage{height:clamp(380px,100vw,600px);flex:none}
+  .panel{overflow:visible}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <main class="stage" id="stage" aria-label="โมเดล 3 มิติไลน์บรรจุน้ำตาล">
+    <canvas id="gl"></canvas>
+    <div id="labels"></div>
+    <div class="hint">ลากเพื่อหมุน · เลื่อนล้อเมาส์หรือบีบนิ้วเพื่อซูม · แตะอุปกรณ์เพื่อดูรายละเอียด</div>
+    <nav class="views" aria-label="มุมมอง"><div class="seg" id="views">
+      <button class="btn" data-view="iso" aria-pressed="true">3 มิติ</button>
+      <button class="btn" data-view="top" aria-pressed="false">ด้านบน</button>
+      <button class="btn" data-view="front" aria-pressed="false">ด้านหน้า</button>
+      <button class="btn" data-view="side" aria-pressed="false">ด้านข้าง</button>
+      <button class="btn" data-view="line" aria-pressed="false">ตามสายพาน</button>
+    </div></nav>
+  </main>
+
+  <aside class="panel">
+    <header class="brand">
+      <p class="eyebrow">แบบ SBPL-001 · มาตราส่วนเดิม 1:100</p>
+      <h1>ไลน์บรรจุน้ำตาลทราย 50 กก.</h1>
+      <p class="sub">ห้องผลิต 20 × 18 ม. สูง 8 ม. · บรรจุ 2 ไลน์ แล้วรวมเป็นสายพานเดียวก่อนตรวจ</p>
+      <div class="legend" id="legend"></div>
+    </header>
+
+    <section><h2>รายละเอียดอุปกรณ์</h2><div class="card" id="info" aria-live="polite">
+      <p class="empty">แตะอุปกรณ์ในโมเดลหรือเลือกจากรายการด้านล่าง เพื่อดูหน้าที่ ขนาด และข้อเสนอแนะ</p></div></section>
+
+    <section><h2>ชั้นข้อมูล</h2><div class="opts">
+      <label class="opt"><input type="checkbox" id="l-struct" checked> อาคาร ผนัง เสา และโครงหลังคา</label>
+      <label class="opt"><input type="checkbox" id="l-old" checked> <i class="dot"></i>อุปกรณ์เดิมตามแบบ <span class="n" id="n-old"></span></label>
+      <label class="opt"><input type="checkbox" id="l-new" checked> <i class="dot new"></i>อุปกรณ์ที่เพิ่ม <span class="n" id="n-new"></span></label>
+      <label class="opt"><input type="checkbox" id="l-clear" checked> พื้นที่ซ่อมบำรุง (เว้นโดยรอบ 1 ม.)</label>
+      <label class="opt"><input type="checkbox" id="l-flow" checked> ถุงน้ำตาลและพาเลท</label>
+    </div></section>
+
+    <section><h2>ป้ายชื่อ</h2><div class="line" id="labelmode">
+      <button class="btn" data-m="0" aria-pressed="false">ซ่อน</button>
+      <button class="btn" data-m="1" aria-pressed="true">รหัส</button>
+      <button class="btn" data-m="2" aria-pressed="false">รหัส + ชื่อ</button></div></section>
+
+    <section><h2>จำลองการทำงาน</h2>
+      <div class="line"><button class="btn" id="play" aria-pressed="true">หยุดจำลอง</button></div>
+      <div class="sim" id="simtxt"></div></section>
+
+    <section><h2>รายการอุปกรณ์ตามลำดับกระบวนการ</h2>
+      <div class="list" id="list"></div>
+      <h2 class="sub2">อาคารและทางเข้าออก</h2>
+      <div class="list" id="list2"></div></section>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+'use strict';
+const stage=document.getElementById('stage'), canvas=document.getElementById('gl');
+function fail(){stage.insertAdjacentHTML('beforeend','<p class="fail">แสดงโมเดล 3 มิติไม่ได้ในเบราว์เซอร์นี้ ลองเปิดด้วย Chrome, Edge หรือ Safari รุ่นล่าสุด</p>');}
+if(!window.THREE||!THREE.OrbitControls){fail();return;}
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true});}catch(e){fail();return;}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+
+const W=20, D=18, H=8;           // ห้อง: X ยาว 20 ม., Z กว้าง 18 ม., สูง 8 ม.
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(40,1,0.1,200);
+const controls=new THREE.OrbitControls(camera,canvas);
+controls.enableDamping=true; controls.dampingFactor=0.08; controls.minDistance=3; controls.maxDistance=60;
+controls.maxPolarAngle=Math.PI/2-0.02;
+scene.add(new THREE.HemisphereLight(0xffffff,0x4a5a6a,0.85));
+const sun=new THREE.DirectionalLight(0xffffff,0.8); sun.position.set(10,22,14); scene.add(sun);
+
+const L={}; ['struct','old','new','clear','flow'].forEach(k=>{L[k]=new THREE.Group(); scene.add(L[k]);});
+
+/* ---------- สี ---------- */
+const C={steel:'#3f7fb5',steelD:'#27537d',steelL:'#79abd6',ss:'#c9d3dd',dark:'#2b333d',belt:'#1c232b',
+  am:'#e08a1e',amD:'#a8620f',amL:'#f4b95c',red:'#c4443a',grn:'#2f9e6a',yel:'#e8c53a',pal:'#b8905a',bag:'#f1ece0',gry:'#8b97a4'};
+const EDGE=new THREE.LineBasicMaterial({color:0x07121d,transparent:true,opacity:0.5});
+
+/* ---------- ตัวช่วยสร้างบล็อก ---------- */
+const items=[], byId={}; let cur=null;
+function mk(c,o){o=o||{};return new THREE.MeshLambertMaterial({color:c,transparent:o.op!=null,opacity:o.op!=null?o.op:1,depthWrite:o.op==null});}
+function put(g,x,cy,z,c,o,ang){o=o||{};const m=new THREE.Mesh(g,mk(c,o));m.position.set(x,cy,z);
+  if(o.rx)m.rotation.x=o.rx; if(o.ry)m.rotation.y=o.ry;
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g,ang||1),EDGE)); cur.add(m); return m;}
+function box(w,h,d,x,y,z,c,o){return put(new THREE.BoxGeometry(w,h,d),x,y+h/2,z,c,o);}
+function cyl(rt,rb,h,x,y,z,c,o){o=o||{};return put(new THREE.CylinderGeometry(rt,rb,h,o.seg||24),x,y+h/2,z,c,o,35);}
+function pyr(wt,wb,h,x,y,z,c,o){const g=new THREE.CylinderGeometry(wt/Math.SQRT2,wb/Math.SQRT2,h,4,1);g.rotateY(Math.PI/4);return put(g,x,y+h/2,z,c,o,35);}
+function bar(a,b,w,h,c,o){const A=new THREE.Vector3(a[0],a[1],a[2]),B=new THREE.Vector3(b[0],b[1],b[2]);
+  const g=new THREE.BoxGeometry(w,h,A.distanceTo(B));const m=new THREE.Mesh(g,mk(c,o));
+  m.position.copy(A).add(B).multiplyScalar(0.5);m.lookAt(B);m.add(new THREE.LineSegments(new THREE.EdgesGeometry(g),EDGE));cur.add(m);return m;}
+function begin(d){cur=new THREE.Group();cur.userData=d;}
+function end(){const d=cur.userData;(d.status==='old'?L.old:d.status==='new'?L.new:L.struct).add(cur);items.push(cur);byId[d.id]=cur;cur=null;}
+
+/* ---------- อาคาร ---------- */
+const floorMat=new THREE.MeshLambertMaterial({color:0xd3dee9});
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(W,D),floorMat); floor.rotation.x=-Math.PI/2; L.struct.add(floor);
+const gridMat=new THREE.LineBasicMaterial({color:0xbccbda});
+const gp=[]; for(let x=-W/2;x<=W/2;x++)gp.push(x,0.005,-D/2,x,0.005,D/2); for(let z=-D/2;z<=D/2;z++)gp.push(-W/2,0.005,z,W/2,0.005,z);
+const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.Float32BufferAttribute(gp,3)); L.struct.add(new THREE.LineSegments(gg,gridMat));
+const wallMat=new THREE.MeshBasicMaterial({color:0x7592ae,transparent:true,opacity:0.06,depthWrite:false,side:THREE.DoubleSide});
+const wallLine=new THREE.LineBasicMaterial({color:0x7592ae});
+const colMat=new THREE.MeshLambertMaterial({color:0x7592ae});
+[[W,H,0.1,0,H/2,-D/2],[W,H,0.1,0,H/2,D/2],[0.1,H,D,-W/2,H/2,0],[0.1,H,D,W/2,H/2,0]].forEach(a=>{
+  const g=new THREE.BoxGeometry(a[0],a[1],a[2]);const m=new THREE.Mesh(g,wallMat);m.position.set(a[3],a[4],a[5]);L.struct.add(m);
+  const e=new THREE.LineSegments(new THREE.EdgesGeometry(g),wallLine);e.position.copy(m.position);L.struct.add(e);});
+function sbox(w,h,d,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),colMat);m.position.set(x,y+h/2,z);L.struct.add(m);}
+[-9.82,-5,0,5,9.82].forEach(x=>{[-8.82,8.82].forEach(z=>sbox(0.35,H-0.25,0.35,x,0,z)); sbox(0.2,0.25,D-0.2,x,H-0.25,0);});
+sbox(W-0.2,0.2,0.2,0,H-0.2,-8.82); sbox(W-0.2,0.2,0.2,0,H-0.2,8.82);
+[[-9.82,0],[9.82,0]].forEach(p=>sbox(0.35,H-0.25,0.35,p[0],0,p[1]));
+/* เส้นบอกขนาด */
+const dimMat=new THREE.LineBasicMaterial({color:0x566a7e});
+const dp=[-W/2,0.02,9.9,W/2,0.02,9.9, -W/2,0.02,9.5,-W/2,0.02,10.3, W/2,0.02,9.5,W/2,0.02,10.3,
+  10.9,0.02,-D/2,10.9,0.02,D/2, 10.5,0.02,-D/2,11.3,0.02,-D/2, 10.5,0.02,D/2,11.3,0.02,D/2,
+  10.9,0,9.9,10.9,H,9.9, 10.6,0,9.9,11.2,0,9.9, 10.6,H,9.9,11.2,H,9.9];
+const dg=new THREE.BufferGeometry(); dg.setAttribute('position',new THREE.Float32BufferAttribute(dp,3)); L.struct.add(new THREE.LineSegments(dg,dimMat));
+L.struct.add(new THREE.ArrowHelper(new THREE.Vector3(1,0,0),new THREE.Vector3(-5,0.06,-6),10,0xe08a1e,0.8,0.45));
+
+/* ================= อุปกรณ์ตามลำดับกระบวนการ ================= */
+/* A1 ถังรับน้ำตาลดิบ */
+begin({id:'A1',code:'A1',name:'ถังรับน้ำตาลทรายดิบ',status:'old',label:[-8.6,3.1,6.2],
+  desc:'รับน้ำตาลทรายดิบจากรถบรรทุกหรือถุงใหญ่ แล้วส่งต่อด้วยสกรูลำเลียงไปยังตะแกรงร่อน',
+  note:'ในแบบเดิมมีจุดรับ 2 จุดที่ซ้ำกัน โมเดลนี้รวมเป็นถังรับเพียงจุดเดียวชิดประตูรับวัตถุดิบ'});
+[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(p=>box(0.16,1.6,0.16,-8.6+p[0]*0.9,0,6.2+p[1]*0.9,C.steelD));
+pyr(2,0.4,1,-8.6,0.6,6.2,C.steel); box(2,1,2,-8.6,1.6,6.2,C.steel); box(1.8,0.06,1.8,-8.6,2.6,6.2,C.steelL);
+bar([-8.6,0.5,6.2],[-6.6,0.5,6.2],0.35,0.35,C.steelD); bar([-6.6,0.5,6.2],[-6.6,0.5,3.5],0.35,0.35,C.steelD); end();
+
+/* SF1 ตะแกรงร่อน + แม่เหล็ก (ใหม่) */
+begin({id:'SF1',code:'SF1',name:'ตะแกรงร่อน + แม่เหล็ก',status:'new',label:[-6.6,1.9,3],
+  desc:'ร่อนแยกก้อนน้ำตาลและสิ่งแปลกปลอม พร้อมแม่เหล็กดักเศษโลหะก่อนเข้าระบบ',
+  note:'ติดตั้งก่อนบักเก็ตลิฟต์ เพื่อไม่ให้เศษโลหะหรือก้อนแข็งเข้าไปถึงเครื่องบรรจุ'});
+[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(p=>box(0.12,0.3,0.12,-6.6+p[0]*0.4,0,3+p[1]*0.4,C.amD));
+box(1,1.1,1,-6.6,0.3,3,C.am); box(0.8,0.12,0.8,-6.6,1.4,3,C.dark); box(0.4,0.3,0.4,-5.85,0.6,3,C.amD);
+bar([-6.6,0.7,2.5],[-6.6,0.7,0.55],0.3,0.3,C.amD); end();
+
+/* BE1 บักเก็ตลิฟต์ (ใหม่) */
+begin({id:'BE1',code:'BE1',name:'บักเก็ตลิฟต์',status:'new',label:[-6.6,7.9,0],
+  desc:'ยกน้ำตาลทรายขึ้นสู่ถังพักในระบบปิด ใช้แทนสายพานลำเลียงเอียงในแบบเดิม',
+  note:'น้ำตาลเกาะติดและฟุ้งเป็นฝุ่นง่าย ระบบปิดช่วยลดฝุ่นและน้ำตาลหก ต่อท่อดูดฝุ่นที่หัวลิฟต์'});
+box(0.9,6.8,0.8,-6.6,0,0,C.am); box(1.1,0.9,1.0,-6.6,0,0,C.amD); box(1.3,0.8,1.1,-6.6,6.8,0,C.amD);
+box(0.5,0.5,0.6,-7.55,6.9,0,C.dark);
+bar([-5.9,7.2,0],[-4.7,6.05,0],0.45,0.3,C.am); pyr(1,0.6,0.4,-4.5,5.6,0,C.amL); end();
+
+/* H1 ถังพัก (วางตามแนวแกน Z เพื่อจ่ายให้ 2 ไลน์) */
+begin({id:'H1',code:'H1',name:'ถังพักน้ำตาล + เซนเซอร์ระดับ',status:'old',label:[-4.2,6.2,0],
+  desc:'พักน้ำตาลและจ่ายให้เครื่องบรรจุทั้งสองไลน์พร้อมกัน มีเซนเซอร์ระดับ 3 จุด (ต่ำ กลาง สูง) สั่งหยุดและเดินลิฟต์อัตโนมัติ'});
+box(1.8,1.2,8,-4.2,4.4,0,C.steel); box(1.6,0.06,7.8,-4.2,5.6,0,C.steelL);
+[-4.9,-3.5].forEach(x=>[-3.8,3.8].forEach(z=>box(0.25,4.4,0.25,x,0,z,C.steelD)));
+[[-1,4.7],[0,5.05],[1,5.4]].forEach(p=>box(0.3,0.14,0.14,-3.2,p[1],p[0],C.yel)); end();
+
+/* BM1 / BM2 เครื่องบรรจุ แยกคนละไลน์ */
+const BX=-4.2;
+function bagger(id,name,cz,desc){
+  begin({id:id,code:id,name:name,status:'old',label:[BX,3.9,cz],desc:desc});
+  [-1,1].forEach(a=>[-1,1].forEach(b=>box(0.22,3.8,0.22,BX+a*1.0,0,cz+b*1.05,C.steelD)));
+  box(2.2,1.2,2.4,BX,2.6,cz,C.steel); pyr(1.4,0.5,0.6,BX,3.8,cz,C.steelL);
+  cyl(0.17,0.17,1.0,BX,1.6,cz,C.ss); box(0.5,0.25,0.5,BX,1.4,cz,C.dark);
+  const iz=cz>0?cz-1.28:cz+1.28;
+  box(0.1,1.5,0.1,BX+0.6,0,iz,C.steelD); box(0.55,0.7,0.12,BX+0.6,1.5,iz,C.dark); end();}
+bagger('BM1','เครื่องบรรจุอัตโนมัติ ไลน์ 1',-2.4,'ชั่งน้ำหนักและเติมน้ำตาลลงถุง 50 กก. ลงสายพานไลน์ 1 ทำงานแยกจากไลน์ 2');
+bagger('BM2','เครื่องบรรจุอัตโนมัติ ไลน์ 2',2.4,'ชั่งน้ำหนักและเติมน้ำตาลลงถุง 50 กก. ลงสายพานไลน์ 2 หยุดซ่อมได้โดยไม่กระทบไลน์ 1');
+
+/* BP1 / BP2 ที่ใส่ถุงเปล่า (ใหม่) */
+function bagMag(id,name,cz){
+  const mz=cz>0?4.7:-4.7, sg=cz>0?1:-1;
+  begin({id:id,code:id,name:name,status:'new',label:[BX,1.95,mz],
+    desc:'แม็กกาซีนเก็บถุงเปล่า ดึงถุงทีละใบส่งเข้าปากบรรจุโดยอัตโนมัติ ลดแรงงานใส่ถุง',
+    note:'อยู่ด้านนอกของแต่ละไลน์ เติมถุงได้โดยไม่ต้องเข้าไปในทางเดินระหว่างไลน์'});
+  box(1.2,0.9,0.9,BX,0,mz,C.am); for(let i=0;i<5;i++)box(0.8,0.07,0.55,BX,0.9+i*0.08,mz,C.bag);
+  bar([BX,1.45,mz-sg*0.45],[BX,1.7,cz+sg*0.2],0.15,0.1,C.amD); end();}
+bagMag('BP1','ที่ใส่ถุงเปล่า ไลน์ 1',-2.4); bagMag('BP2','ที่ใส่ถุงเปล่า ไลน์ 2',2.4);
+
+/* E1 ตู้ควบคุม */
+begin({id:'E1',code:'E1',name:'ตู้ควบคุม PLC / MCC',status:'old',label:[-2.1,2.4,0],
+  desc:'ตู้ควบคุมไฟฟ้าและ PLC ของเครื่องบรรจุ สายพาน และอุปกรณ์ตรวจสอบ วางในทางเดินกลางระหว่างสองไลน์'});
+box(1.6,2.0,0.6,-2.1,0,0,C.ss); box(0.12,0.2,0.12,-2.1,2.0,0,C.grn); end();
+
+/* DC1 ระบบดูดฝุ่น (ใหม่) */
+begin({id:'DC1',code:'DC1',name:'ระบบดูดฝุ่น',status:'new',label:[-9,5.5,-4.8],
+  desc:'ถุงกรองดูดฝุ่นน้ำตาลจากหัวบักเก็ตลิฟต์ ถังพัก และเครื่องบรรจุทั้งสองไลน์ ผ่านท่อเหนือศีรษะ',
+  note:'ฝุ่นน้ำตาลเสี่ยงระเบิดได้ ควรมีช่องระบายแรงระเบิด (แผงสีแดง) และอุปกรณ์ไฟฟ้าที่เหมาะกับพื้นที่ ให้วิศวกรตรวจสอบตามมาตรฐานที่เกี่ยวข้อง'});
+(function(){const dx=-9,dz=-4.8;
+  [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(p=>box(0.14,0.7,0.14,dx+p[0]*0.6,0,dz+p[1]*0.6,C.amD));
+  cyl(0.8,0.25,1.1,dx,0.6,dz,C.amL,{seg:20}); cyl(0.8,0.8,2.7,dx,1.7,dz,C.am,{seg:20}); cyl(0.25,0.8,0.5,dx,4.4,dz,C.amL,{seg:20});
+  box(0.12,0.9,0.6,dx+0.82,2.8,dz,'#d6452a'); box(0.8,0.6,0.7,dx,4.9,dz,C.amD);
+  box(0.35,2.0,0.35,dx,5.5,dz,C.gry);
+  bar([dx,7.5,dz],[-2.8,7.5,dz],0.35,0.35,C.gry);
+  bar([-2.8,7.5,dz],[-2.8,7.5,4.8],0.35,0.35,C.gry);
+  bar([-2.8,7.5,0],[-6.0,7.5,0],0.3,0.3,C.gry); box(0.3,1.9,0.3,-3.7,5.6,0,C.gry);
+  [-2.4,2.4].forEach(cz=>{box(0.3,4.2,0.3,-2.8,3.3,cz,C.gry); bar([-2.8,3.3,cz],[-3.1,3.3,cz],0.3,0.3,C.gry);});
+})(); end();
+
+/* ST1 ชานเหล็กและบันได (ใหม่) */
+begin({id:'ST1',code:'ST1',name:'ชานเหล็กและบันได',status:'new',label:[-2.1,4.6,0],
+  desc:'ชานเหล็กพร้อมราวกันตกอยู่เหนือทางเดินกลางระหว่างสองไลน์ ใช้เดินไปตรวจและบำรุงรักษาหัวเครื่องบรรจุและถังพัก บันไดลงด้านหน้าไลน์ 2',
+  note:'ชานอยู่เหนือตู้ควบคุม E1 และเครื่องเย็บ เหลือความสูงใต้ชานมากกว่า 1.7 ม.'});
+box(1.8,0.12,7.2,-2.1,3.7,0,C.am);
+[-3.0,-1.2].forEach(x=>[-3.5,3.5].forEach(z=>box(0.15,3.7,0.15,x,0,z,C.amD)));
+[-3.5,-1.0,1.5].forEach(z=>box(0.05,0.95,0.05,-1.2,3.82,z,C.amL));
+box(0.05,0.05,6.5,-1.2,4.75,-0.35,C.amL); [-3.6,3.6].forEach(z=>box(1.8,0.05,0.05,-2.1,4.75,z,C.amL));
+for(let i=0;i<18;i++){const top=3.82-0.21*(i+1);box(0.25,0.06,0.9,-1.2+0.25*i+0.125,top-0.06,3.15,C.am);}
+bar([-1.2,3.7,2.72],[3.3,0.0,2.72],0.06,0.25,C.amD); bar([-1.2,3.7,3.58],[3.3,0.0,3.58],0.06,0.25,C.amD);
+bar([-1.2,4.75,3.6],[3.3,1.05,3.6],0.05,0.05,C.amL); end();
+
+/* CL1 / CL2 สายพานแต่ละไลน์ (ใหม่) */
+function lineConv(id,name,zl){
+  begin({id:id,code:id,name:name,status:'new',label:[-5.8,1.3,zl],
+    desc:'สายพานรับถุงจากเครื่องบรรจุของไลน์นี้ ผ่านเครื่องเย็บปากถุง แล้วส่งเข้าจุดรวมไลน์',
+    note:'แยกสายพานกันตั้งแต่ใต้เครื่องบรรจุ ไลน์หนึ่งหยุดได้โดยอีกไลน์ยังเดินต่อ'});
+  box(5.45,0.1,0.7,-3.475,0.9,zl,C.belt); [0.38,-0.38].forEach(d=>box(5.45,0.22,0.07,-3.475,0.68,zl+d,C.steelD));
+  [-6,-4.5,-3,-1.5].forEach(x=>[0.38,-0.38].forEach(d=>box(0.08,0.68,0.08,x,0,zl+d,C.steelD)));
+  cyl(0.12,0.12,0.8,-6.2,0.81,zl,C.steelD,{rx:Math.PI/2}); end();}
+lineConv('CL1','สายพานไลน์ 1',-2.4); lineConv('CL2','สายพานไลน์ 2',2.4);
+
+/* SW1 / SW2 เครื่องเย็บปากถุง ไลน์ละเครื่อง (ใหม่) */
+function sew(id,name,zl){
+  begin({id:id,code:id,name:name,status:'new',label:[-2.0,2.3,zl],
+    desc:'เย็บปิดปากถุงหลังบรรจุ ก่อนเข้าจุดรวมไลน์',
+    note:'ในแบบเดิมยังไม่มีขั้นตอนปิดปากถุง จึงเพิ่มไว้ท้ายเครื่องบรรจุของแต่ละไลน์'});
+  [-0.55,0.55].forEach(d=>box(0.15,1.9,0.15,-2.0,0,zl+d,C.am)); box(0.9,0.3,1.25,-2.0,1.6,zl,C.amD);
+  box(0.45,0.35,0.35,-2.0,1.25,zl,C.am); cyl(0.14,0.05,0.35,-2.0,1.9,zl+0.3,C.amL); end();}
+sew('SW1','เครื่องเย็บปากถุง ไลน์ 1',-2.4); sew('SW2','เครื่องเย็บปากถุง ไลน์ 2',2.4);
+
+/* CM1 จุดรวมไลน์ (ใหม่) */
+begin({id:'CM1',code:'CM1',name:'สายพานรวมไลน์',status:'new',label:[-0.4,1.35,-1.4],
+  desc:'รับถุงจากไลน์ 1 และไลน์ 2 ทางด้านข้าง แล้วป้อนเข้าสายพานหลักทีละใบ สลับไลน์กัน เว้นระยะไม่ให้ถุงชนกัน',
+  note:'หลังจุดนี้ใช้เครื่องตรวจโลหะ 1 เครื่อง และเครื่องชั่งตรวจน้ำหนัก 1 เครื่อง ร่วมกันทั้งสองไลน์'});
+box(0.7,0.1,5.5,-0.4,0.9,0,C.belt); box(0.07,0.22,4.04,-0.75,0.68,0,C.steelD);
+[-1.575,1.575].forEach(z=>box(0.07,0.22,2.35,-0.05,0.68,z,C.steelD));
+[-0.75,-0.05].forEach(x=>[-2.5,-1.0,1.0,2.5].forEach(z=>box(0.08,0.68,0.08,x,0,z,C.steelD)));
+box(0.08,0.3,0.7,-0.2,0.98,-0.55,C.amD); box(0.08,0.3,0.7,-0.2,0.98,0.55,C.amD); end();
+
+/* C1 สายพานหลักหลังรวมไลน์ */
+begin({id:'C1',code:'C1',name:'สายพานลำเลียงหลัก',status:'old',label:[0.8,1.3,0.6],
+  desc:'สายพานหลักหลังรวมไลน์ ลำเลียงถุงผ่านเครื่องรีดถุง เครื่องตรวจทั้งหมด ไปยังจุดหยิบของหุ่นยนต์'});
+box(8.35,0.1,0.7,4.125,0.9,0,C.belt); [0.38,-0.38].forEach(z=>box(8.35,0.22,0.07,4.125,0.68,z,C.steelD));
+for(let x=0.5;x<=7.5;x+=1.5)[0.38,-0.38].forEach(z=>box(0.08,0.68,0.08,x,0,z,C.steelD));
+cyl(0.12,0.12,0.8,8.3,0.81,0,C.steelD,{rx:Math.PI/2}); end();
+
+/* BF1 เครื่องรีดถุง */
+begin({id:'BF1',code:'BF1',name:'เครื่องรีดถุงให้เรียบ',status:'old',label:[1.7,2.1,0],
+  desc:'รีดถุงให้แบนเรียบสม่ำเสมอ เพื่อให้พิมพ์รหัสชัดและวางซ้อนบนพาเลทได้เป็นระเบียบ'});
+[-0.55,0.55].forEach(z=>box(0.15,1.7,0.15,1.7,0,z,C.steel)); box(1.0,0.2,1.25,1.7,1.5,0,C.steelD);
+cyl(0.12,0.12,0.65,1.45,1.12,0,C.ss,{rx:Math.PI/2}); cyl(0.12,0.12,0.65,1.95,1.12,0,C.ss,{rx:Math.PI/2}); end();
+
+/* IP1 อิงค์เจ็ท */
+begin({id:'IP1',code:'IP1',name:'เครื่องพิมพ์อิงค์เจ็ท',status:'old',label:[2.9,2.0,0.9],
+  desc:'พิมพ์รหัสล็อต (Batch) และวันที่ผลิตลงบนถุง'});
+box(0.2,1.6,0.2,2.9,0,0.85,C.ss); bar([2.9,1.5,0.85],[2.9,1.5,0.4],0.12,0.12,C.ss); box(0.3,0.25,0.3,2.9,1.15,0.45,C.dark);
+box(0.5,0.7,0.4,2.9,0,1.35,C.ss); end();
+
+/* MD1 เครื่องตรวจจับโลหะ */
+begin({id:'MD1',code:'MD1',name:'เครื่องตรวจจับโลหะแบบอุโมงค์',status:'old',label:[4.0,2.3,0],
+  desc:'ใช้ 1 เครื่อง ตรวจโลหะปนเปื้อนในถุงที่ปิดแล้วจากทั้งสองไลน์ที่รวมกันแล้ว ส่งสัญญาณให้ตัวคัดทิ้งดันถุงที่ผิดปกติออก'});
+[0.47,-0.47].forEach(z=>box(0.8,0.87,0.12,4.0,0.95,z,C.steel)); box(0.8,0.12,1.12,4.0,1.7,0,C.steelD); box(0.35,0.4,0.3,4.0,1.82,0,C.dark); end();
+
+/* RJ1 / RJ2 ตัวคัดทิ้ง (ใหม่) */
+function reject(id,name,cx,desc,note){
+  begin({id:id,code:id,name:name,status:'new',label:[cx,0.95,1.2],desc:desc,note:note});
+  box(0.4,0.5,0.35,cx,0.7,-0.95,C.am); bar([cx,1.0,-0.78],[cx,1.0,-0.42],0.1,0.1,C.amD); box(0.5,0.3,0.06,cx,0.95,-0.43,C.amL);
+  bar([cx,0.95,0.4],[cx,0.6,0.8],0.5,0.04,C.ss); box(0.8,0.6,0.8,cx,0,1.15,C.red); box(0.7,0.02,0.7,cx,0.6,1.15,C.dark); end();}
+reject('RJ1','ตัวคัดทิ้ง (หลังตรวจโลหะ)',4.8,'ดันถุงที่เครื่องตรวจพบโลหะลงถังคัดทิ้งด้านข้างสายพาน','ในแบบเดิมเครื่องตรวจโลหะยังไม่มีตัวคัดทิ้ง จึงเพิ่มไว้ต่อท้ายเครื่องตรวจ');
+reject('RJ2','ตัวคัดทิ้ง (น้ำหนักผิด)',6.6,'ดันถุงที่น้ำหนักต่ำหรือสูงกว่าเกณฑ์ลงถังคัดทิ้ง','ใช้ถังคัดทิ้งแยกจาก RJ1 เพื่อไม่ปนกับถุงที่พบโลหะ');
+
+/* CW1 เครื่องชั่งตรวจน้ำหนัก */
+begin({id:'CW1',code:'CW1',name:'เครื่องชั่งตรวจน้ำหนัก 50 กก.',status:'old',label:[5.8,1.75,-0.95],
+  desc:'ใช้ 1 เครื่อง ชั่งถุงขณะเคลื่อนที่จากทั้งสองไลน์ เทียบกับเกณฑ์ 50 กก. และส่งผลให้ตัวคัดทิ้งถัดไป'});
+box(1.1,0.4,0.85,5.8,0.35,0,C.ss); box(1.1,0.08,0.8,5.8,0.82,0,C.ss); box(0.12,1.3,0.12,5.8,0,-0.95,C.ss); box(0.4,0.3,0.15,5.8,1.3,-0.95,C.dark); end();
+
+/* P1 หุ่นยนต์จัดเรียงพาเลท */
+begin({id:'P1',code:'P1',name:'หุ่นยนต์จัดเรียงพาเลท',status:'old',label:[8.8,3.8,-1.9],
+  desc:'หยิบถุงที่ปลายสายพานและวางซ้อนบนพาเลท ชั้นละ 4 ถุง จนครบ 10 ชั้น (40 ถุง ราว 2 ตัน)'});
+cyl(0.5,0.55,0.5,8.8,0,-1.9,C.steelD); cyl(0.28,0.28,1.3,8.8,0.5,-1.9,C.steel); box(0.55,0.55,0.55,8.8,1.8,-1.9,C.steelL);
+bar([8.8,2.1,-1.9],[8.55,3.3,-1.2],0.3,0.3,C.steel); box(0.4,0.4,0.4,8.55,3.1,-1.2,C.steelL);
+bar([8.55,3.3,-1.2],[8.0,1.85,-0.15],0.22,0.22,C.steel); box(0.8,0.35,0.6,8.0,1.45,-0.15,C.dark);
+box(1.0,0.15,1.2,8.8,0.35,-3.9,C.pal); end();
+
+/* EP1 เครื่องจ่ายพาเลทเปล่า */
+begin({id:'EP1',code:'EP1',name:'เครื่องจ่ายพาเลทเปล่า',status:'old',label:[6.2,2.7,-3.9],
+  desc:'เก็บพาเลทเปล่าเป็นตั้ง และจ่ายทีละแผ่นไปยังสถานีจัดเรียง'});
+[5.55,6.85].forEach(x=>[-4.5,-3.3].forEach(z=>box(0.1,2.4,0.1,x,0,z,C.steel))); box(1.4,0.1,1.3,6.2,2.4,-3.9,C.steelD);
+for(let i=0;i<6;i++)box(1.0,0.14,1.2,6.2,0.3+i*0.16,-3.9,C.pal);
+box(1.4,0.25,1.2,7.6,0.1,-3.9,C.belt); end();
+
+/* PC1 สายพานพาเลท */
+begin({id:'PC1',code:'PC1',name:'สายพานพาเลท',status:'old',label:[8.8,0.6,-4.6],
+  desc:'ส่งพาเลทเปล่าเข้าสถานีจัดเรียง และส่งพาเลทเต็มไปพันฟิล์มและจุดรับของรถยก'});
+box(1.2,0.25,2.2,8.8,0.1,-4.1,C.belt); box(1.2,0.25,1.4,8.8,0.1,-7.5,C.belt);
+[-4.1,-7.5].forEach((z,i)=>[8.2,9.4].forEach(x=>box(0.06,0.3,i?1.4:2.2,x,0.1,z,C.steelD))); end();
+
+/* SC1 เครื่องพันฟิล์ม (ใหม่) */
+begin({id:'SC1',code:'SC1',name:'เครื่องพันฟิล์มพาเลท',status:'new',label:[9.4,2.9,-6],
+  desc:'หมุนพาเลทบนแท่นและพันฟิล์มยืดรอบถุง ให้ซ้อนอยู่ตัวระหว่างขนส่ง',
+  note:'ติดตั้งระหว่างสถานีจัดเรียงกับจุดรับพาเลท พาเลทเต็มผ่านโดยไม่ต้องใช้รถยกย้าย'});
+cyl(0.72,0.72,0.1,8.8,0.3,-6.0,C.ss,{seg:32}); box(0.25,2.7,0.25,9.65,0,-6.0,C.am); box(0.4,0.6,0.35,9.3,1.0,-6.0,C.amD); end();
+
+/* FL1 ทางรถยก */
+begin({id:'FL1',code:'FL1',name:'ทางรถยก + จุดรับพาเลท',status:'new',label:[6.0,2.4,-7.6],
+  desc:'เลนรถยกสีเหลืองจากประตูด้านหลัง ถึงจุดรับพาเลทสำเร็จรูปที่พันฟิล์มแล้ว',
+  note:'เว้นช่องให้รถยกเลี้ยวและถอยได้ ไม่ตัดผ่านทางเดินของพนักงานด้านหน้าสายพาน'});
+box(5.3,0.03,1.9,7.15,0,-7.95,C.yel,{op:0.4});
+box(0.96,1.7,1.16,8.8,0.5,-7.5,C.ss,{op:0.55}); box(1.0,0.15,1.2,8.8,0.35,-7.5,C.pal);
+box(1.7,0.9,1.0,5.9,0.3,-7.6,C.am); box(0.5,0.8,1.0,5.15,0.3,-7.6,C.gry); box(1.1,0.05,0.95,5.6,2.1,-7.6,C.amD);
+[5.05,6.15].forEach(x=>[-8.05,-7.15].forEach(z=>box(0.06,1.5,0.06,x,0.6,z,C.amD)));
+box(0.1,2.0,0.9,6.85,0,-7.6,C.dark); [-7.3,-7.9].forEach(z=>box(1.1,0.05,0.12,7.5,0.15,z,C.dark));
+[5.4,6.5].forEach(x=>[-8.15,-7.05].forEach(z=>cyl(0.3,0.3,0.2,x,0,z,C.dark,{rx:Math.PI/2,seg:16}).position.y=0.3)); end();
+
+/* ประตู */
+function door(id,name,pos,size,col,desc,label){begin({id:id,code:id,name:name,status:'struct',label:label,desc:desc});
+  box(size[0],size[1],size[2],pos[0],0,pos[2],col,{op:0.8}); if(id[0]==='E'){box(size[0],0.3,size[2]*0.6,pos[0],size[1]+0.2,pos[2],C.grn);} end();}
+door('EX1','ประตูทางหนีไฟ 1',[9.94,0,6.5],[0.12,3.2,1.6],C.grn,'ประตูทางหนีไฟผนังด้านขวา ใกล้สายพานหลัก เปิดออกสู่ภายนอก',[10,3.9,6.5]);
+door('EX2','ประตูทางหนีไฟ 2',[-9.94,0,-7.6],[0.12,3.2,1.6],C.grn,'ประตูทางหนีไฟผนังด้านซ้าย ใกล้ระบบดูดฝุ่น',[-10,3.9,-7.6]);
+door('RD1','ประตูรับวัตถุดิบ',[-9.94,0,6.2],[0.12,3.8,3.0],C.gry,'ประตูม้วนให้รถบรรทุกถอยเทน้ำตาลทรายดิบลงถังรับ A1',[-10,4.4,6.2]);
+door('RD2','ประตูรถยก',[8.4,0,-8.94],[3.0,4.0,0.12],C.gry,'ประตูม้วนด้านหลังสำหรับรถยกรับพาเลทสินค้าสำเร็จรูปออก',[8.4,4.5,-9]);
+
+/* ---------- พื้นที่ซ่อมบำรุง ---------- */
+scene.updateMatrixWorld(true);
+const grnMat=new THREE.MeshBasicMaterial({color:0x2f9e6a,transparent:true,opacity:0.1,depthWrite:false});
+const zoneLine=new THREE.LineDashedMaterial({color:0x2f9e6a,dashSize:0.3,gapSize:0.2});
+function zone(x0,x1,z0,z1){
+  x0=Math.max(x0,-W/2+0.05);x1=Math.min(x1,W/2-0.05);z0=Math.max(z0,-D/2+0.05);z1=Math.min(z1,D/2-0.05);
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),grnMat);p.rotation.x=-Math.PI/2;p.position.set((x0+x1)/2,0.03,(z0+z1)/2);L.clear.add(p);
+  const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x0,0.04,z0),new THREE.Vector3(x1,0.04,z0),new THREE.Vector3(x1,0.04,z1),new THREE.Vector3(x0,0.04,z1)]);
+  const l=new THREE.LineLoop(g,zoneLine);l.computeLineDistances();L.clear.add(l);}
+zone(-10,-4.95,-1.6,8.2); zone(-10,-7.2,-6.6,-3.0); zone(-6.4,-0.5,-6.15,6.15); zone(-1,8.2,-2,2.6); zone(4.5,10,-9,-0.35);
+
+/* ---------- ถุงและพาเลท (จำลอง) ---------- */
+const BAG_L=0.6,BAG_H=0.16,BAG_W=0.5,BELT_Y=1.0,PICK_X=8.0,PAL_MAX=40;
+const bagGeo=new THREE.BoxGeometry(BAG_L,BAG_H,BAG_W), bagEdges=new THREE.EdgesGeometry(bagGeo), bagMat=new THREE.MeshLambertMaterial({color:C.bag});
+function newBag(x){const m=new THREE.Mesh(bagGeo,bagMat);m.add(new THREE.LineSegments(bagEdges,EDGE));m.position.set(x,BELT_Y+BAG_H/2,0);L.flow.add(m);return m;}
+const palGeo=new THREE.BoxGeometry(0.5,BAG_H,0.6), palEdges=new THREE.EdgesGeometry(palGeo), palBags=[];
+for(let l=0;l<10;l++)for(let i=0;i<4;i++){
+  const m=new THREE.Mesh(palGeo,bagMat);m.add(new THREE.LineSegments(palEdges,EDGE));
+  const sx=(i%2?1:-1)*0.25, sz=(i<2?-1:1)*0.3*(l%2?-1:1);
+  m.position.set(8.8+sx,0.5+l*BAG_H+BAG_H/2,-3.9+sz);L.flow.add(m);palBags.push(m);}
+const LEN_PRE=6.2,SEG1=3.8,SH_END=14.6,ZL=[-2.4,2.4],X0=-4.2,V=1.1;
+function pose(b){const y=BELT_Y+BAG_H/2;
+  if(b.s<SEG1){b.m.position.set(X0+b.s,y,ZL[b.l]);b.m.rotation.y=0;}
+  else if(b.s<LEN_PRE){const k=(b.s-SEG1)/2.4;b.m.position.set(-0.4,y,ZL[b.l]*(1-k));b.m.rotation.y=Math.PI/2;}
+  else{b.m.position.set(-0.4+(b.s-LEN_PRE),y,0);b.m.rotation.y=0;}}
+let bags=[{l:0,s:1.5},{l:1,s:2.5},{l:0,s:7.5},{l:1,s:10.5},{l:0,s:13.5}].map(a=>{const b={m:newBag(0),l:a.l,s:a.s};pose(b);return b;});
+let palCount=16,spawnT=0,nextB=0,turn=0,pickT=0,resetT=0,playing=!reduce,simDirty=true;
+function sim(dt){
+  spawnT+=dt;
+  if(spawnT>=2.0){spawnT=0;const l=nextB;nextB^=1;
+    if(!bags.some(b=>b.l===l&&b.s<0.9)){const b={m:newBag(0),l:l,s:0};pose(b);bags.push(b);}}
+  const shared=bags.filter(b=>b.s>=LEN_PRE).sort((a,b)=>b.s-a.s);
+  let lead=null;
+  shared.forEach(b=>{const lim=lead?lead.s-0.75:SH_END;b.s=Math.max(b.s,Math.min(b.s+V*dt,lim));lead=b;});
+  let minU=shared.length?shared[shared.length-1].s-LEN_PRE:99;
+  [turn,turn^1].forEach(l=>{
+    const arr=bags.filter(b=>b.l===l&&b.s<LEN_PRE).sort((a,b)=>b.s-a.s);let ld=null;
+    arr.forEach(b=>{let lim=ld?ld.s-0.75:Infinity;const ns=b.s+V*dt;
+      if(ns>=LEN_PRE&&minU<0.8)lim=Math.min(lim,LEN_PRE-0.001);
+      b.s=Math.max(b.s,Math.min(ns,lim));
+      if(b.s>=LEN_PRE){minU=b.s-LEN_PRE;turn=l^1;}
+      ld=b;});});
+  bags.forEach(pose);
+  if(resetT>0){resetT-=dt;if(resetT<=0){palCount=0;simDirty=true;}return;}
+  let f=null;bags.forEach(b=>{if(!f||b.s>f.s)f=b;});
+  if(f&&f.s>=SH_END-0.01){pickT+=dt;
+    if(pickT>0.8){pickT=0;L.flow.remove(f.m);bags=bags.filter(b=>b!==f);palCount++;simDirty=true;if(palCount>=PAL_MAX)resetT=1.6;}}
+  else pickT=0;}
+const simtxt=document.getElementById('simtxt');
+function syncPal(){palBags.forEach((m,i)=>{m.visible=i<palCount;});simtxt.textContent='พาเลทปัจจุบัน '+palCount+' / '+PAL_MAX+' ถุง ('+(palCount*0.05).toFixed(2)+' ตัน) · จำลองเร็วกว่าจริง';simDirty=false;}
+syncPal();
+
+/* ---------- ธีม ---------- */
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function applyTheme(){
+  scene.background=new THREE.Color(css('--stage')||'#0b1827');
+  floorMat.color.set(css('--floor')||'#112437'); gridMat.color.set(css('--grid')||'#1b3853');
+  [wallMat,wallLine,colMat].forEach(m=>m.color.set(css('--wallline')||'#4a78a4')); dimMat.color.set(css('--muted')||'#8fa5ba');}
+applyTheme();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+/* ---------- ป้ายชื่อ ---------- */
+const labels=document.getElementById('labels'), chips=[], dims=[];
+const STAT={old:'เดิมตามแบบ',new:'เพิ่มใหม่',struct:'อาคาร'};
+items.forEach(it=>{const d=it.userData;const b=document.createElement('button');b.className='chip';b.type='button';
+  b.innerHTML='<i class="dot '+d.status+'"></i><b>'+d.code+'</b><span>'+d.name+'</span>';
+  b.addEventListener('click',()=>select(d.id,true));labels.appendChild(b);
+  chips.push({el:b,it:it,pos:new THREE.Vector3(d.label[0],d.label[1],d.label[2])});});
+[['20.0 ม.',0,0.2,10.4],['18.0 ม.',11.5,0.2,0],['สูง 8.0 ม.',11.2,4,9.9],['ทิศทางสายพานหลัก →',0,0.3,-6.6]].forEach(a=>{
+  const e=document.createElement('div');e.className='dim';e.textContent=a[0];labels.appendChild(e);dims.push({el:e,pos:new THREE.Vector3(a[1],a[2],a[3])});});
+let sw=1,sh=1; const tmp=new THREE.Vector3();
+function place(el,pos){tmp.copy(pos).project(camera);
+  if(tmp.z>1){el.style.display='none';return;}
+  el.style.display='';el.style.zIndex=String(Math.max(0,Math.round((1-tmp.z)*5000)));
+  el.style.transform='translate('+((tmp.x*0.5+0.5)*sw).toFixed(1)+'px,'+((-tmp.y*0.5+0.5)*sh).toFixed(1)+'px) translate(-50%,-100%)';}
+function updateLabels(){
+  chips.forEach(c=>{if(!c.it.parent.visible){c.el.style.display='none';return;}place(c.el,c.pos);});
+  dims.forEach(d=>{if(!L.struct.visible){d.el.style.display='none';return;}place(d.el,d.pos);});}
+
+/* ---------- เลือกอุปกรณ์ ---------- */
+const info=document.getElementById('info'); let sel=null, helper=null;
+function glow(it,on){it.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive)o.material.emissive.setHex(on?0x4a2c00:0x000000);});}
+function fmt(n){return (Math.round(n*10)/10).toFixed(1);}
+function select(id,fly){
+  if(sel){glow(sel,false);sel=null;} if(helper){scene.remove(helper);helper=null;}
+  chips.forEach(c=>c.el.classList.toggle('on',c.it.userData.id===id));
+  document.querySelectorAll('.row').forEach(r=>r.classList.toggle('on',r.dataset.id===id));
+  if(!id||!byId[id]){info.innerHTML='<p class="empty">แตะอุปกรณ์ในโมเดลหรือเลือกจากรายการด้านล่าง เพื่อดูหน้าที่ ขนาด และข้อเสนอแนะ</p>';return;}
+  sel=byId[id];glow(sel,true);const d=sel.userData,b=new THREE.Box3().setFromObject(sel),s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());
+  helper=new THREE.Box3Helper(b,0xe08a1e);scene.add(helper);
+  info.innerHTML='<div class="top"><span class="code">'+d.code+'</span><span class="pill '+d.status+'">'+STAT[d.status]+'</span></div>'
+    +'<h3>'+d.name+'</h3><p>'+d.desc+'</p>'+(d.note?'<div class="note">'+d.note+'</div>':'')
+    +'<dl><dt>ขนาดโดยประมาณ</dt><dd>'+fmt(s.x)+' × '+fmt(s.z)+' × '+fmt(s.y)+' ม.</dd><dt>ตำแหน่ง X, Z</dt><dd>'+fmt(c.x)+', '+fmt(c.z)+' ม.</dd></dl>';
+  if(fly){const dir=camera.position.clone().sub(controls.target).normalize();const dist=Math.max(s.x,s.y,s.z)*1.8+7;
+    go(c.clone().add(dir.multiplyScalar(dist)),c);}}
+
+/* ---------- กล้อง ---------- */
+let tw=null;
+function go(pos,tgt){if(reduce){camera.position.copy(pos);controls.target.copy(tgt);controls.update();return;}
+  tw={t0:performance.now(),p0:camera.position.clone(),g0:controls.target.clone(),p1:pos,g1:tgt};}
+controls.addEventListener('start',()=>{tw=null;});
+const VIEWS={iso:[[24,17,26],[0,2.5,0]],top:[[0,36,0.01],[0,0,0]],front:[[0,5,36],[0,3,0]],side:[[36,6,0.01],[0,3,0]],line:[[-14,2.8,9],[2,1.5,0]]};
+function view(k){const v=VIEWS[k];go(new THREE.Vector3(v[0][0],v[0][1],v[0][2]),new THREE.Vector3(v[1][0],v[1][1],v[1][2]));
+  document.querySelectorAll('#views .btn').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===k)));}
+document.querySelectorAll('#views .btn').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
+camera.position.set(24,17,26);controls.target.set(0,2.5,0);controls.update();
+
+/* ---------- คลิกเลือกในโมเดล ---------- */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(); let down=null;
+canvas.addEventListener('pointerdown',e=>{down={x:e.clientX,y:e.clientY,t:performance.now()};});
+canvas.addEventListener('pointerup',e=>{if(!down)return;const mv=Math.hypot(e.clientX-down.x,e.clientY-down.y),dt=performance.now()-down.t;down=null;
+  if(mv>5||dt>500)return;const r=canvas.getBoundingClientRect();
+  ndc.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(ndc,camera);
+  const ms=[];items.forEach(it=>{if(it.parent.visible)it.traverse(o=>{if(o.isMesh)ms.push(o);});});
+  const h=ray.intersectObjects(ms,false)[0];
+  if(h){let o=h.object;while(o&&!o.userData.id)o=o.parent;select(o?o.userData.id:null,false);}else select(null,false);});
+
+/* ---------- แผงควบคุม ---------- */
+const list=document.getElementById('list'), list2=document.getElementById('list2');
+items.forEach(it=>{const d=it.userData;const r=document.createElement('button');r.type='button';r.className='row';r.dataset.id=d.id;
+  r.innerHTML='<i class="dot '+d.status+'"></i><b>'+d.code+'</b><span>'+d.name+'</span>';r.addEventListener('click',()=>select(d.id,true));
+  (d.status==='struct'?list2:list).appendChild(r);});
+const nOld=items.filter(i=>i.userData.status==='old').length, nNew=items.filter(i=>i.userData.status==='new').length;
+document.getElementById('n-old').textContent=nOld;document.getElementById('n-new').textContent=nNew;
+document.getElementById('legend').innerHTML='<span><i class="dot"></i>เดิมตามแบบ '+nOld+' รายการ</span><span><i class="dot new"></i>เพิ่มใหม่ '+nNew+' รายการ</span>';
+[['struct','l-struct'],['old','l-old'],['new','l-new'],['clear','l-clear'],['flow','l-flow']].forEach(p=>{
+  const el=document.getElementById(p[1]);el.addEventListener('change',()=>{L[p[0]].visible=el.checked;
+    if(sel&&!sel.parent.visible)select(null,false);});});
+function labelMode(m){labels.classList.toggle('off',m===0);labels.classList.toggle('names',m===2);
+  document.querySelectorAll('#labelmode .btn').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.m===m)));}
+document.querySelectorAll('#labelmode .btn').forEach(b=>b.addEventListener('click',()=>labelMode(+b.dataset.m)));
+labelMode(1);
+const play=document.getElementById('play');
+function setPlay(v){playing=v;play.setAttribute('aria-pressed',String(v));play.textContent=v?'หยุดจำลอง':'เริ่มจำลอง';}
+play.addEventListener('click',()=>setPlay(!playing)); setPlay(playing);
+
+/* ---------- วนวาด ---------- */
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;sw=w;sh=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+new ResizeObserver(resize).observe(stage);resize();
+let last=performance.now();
+function frame(now){requestAnimationFrame(frame);const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(tw){const k=Math.min(1,(now-tw.t0)/800),e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+    camera.position.lerpVectors(tw.p0,tw.p1,e);controls.target.lerpVectors(tw.g0,tw.g1,e);if(k>=1)tw=null;}
+  if(playing)sim(dt); if(simDirty)syncPal();
+  controls.update();renderer.render(scene,camera);updateLabels();}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
